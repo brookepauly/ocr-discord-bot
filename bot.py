@@ -1,4 +1,8 @@
 import discord
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # checks bot is connected
 class Client(discord.Client):
@@ -10,6 +14,5 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 # run the bot
-
 client = Client(intents=intents)
-client.run(DISCORD_TOKEN)
+client.run(os.environ.get("DISCORD_TOKEN"))
