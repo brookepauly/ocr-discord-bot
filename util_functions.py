@@ -32,11 +32,10 @@ def extract_images_from_zip(zip_bytes: bytes):
     return images
 
 
-async def process_images_batched(images, batch_size=5):
+async def process_images(images, batch_size=5):
     """
     images: list of (filename, image_bytes, mime_type)
-    Returns: all_vocab (list of extracted
-    return all_vocab (list of extracted word dicts)
+    Returns: all_vocab (list of extracted word dicts)
     """
     all_vocab = []
     for i in range(0, len(images), batch_size):

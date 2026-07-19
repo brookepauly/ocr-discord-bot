@@ -9,7 +9,7 @@ from typing import Literal
 load_dotenv()
 
 from gemini_ocr import extract_vocab
-from util_functions import extract_images_from_zip, process_images_batched
+from util_functions import extract_images_from_zip, process_images
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -50,7 +50,7 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
             await interaction.followup.send("No valid images found in that zip.")
             return
 
-        all_vocab = await process_images_batched(images)
+        all_vocab = await process_images(images)
 
     else:  # single image
         image_bytes = await file.read()
