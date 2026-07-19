@@ -11,7 +11,7 @@ import io
 load_dotenv()
 
 from gemini_ocr import extract_vocab
-from util_functions import extract_images_from_zip, process_images
+from util_functions import extract_images_from_zip, process_images, export_to_csv, 
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -60,15 +60,22 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
         raw_result = extract_vocab([(file.filename, image_bytes, mime_type)])
         all_vocab = json.loads(raw_result)["vocab"]
 
-    # Export based on export tag (to do)
-    
-    # Current lines for testing (file send)
-    vocab_json = json.dumps(all_vocab, ensure_ascii=False, indent=2)
-    file_bytes = io.BytesIO(vocab_json.encode("utf-8"))
+    if export == "apkg":
+        apkg_bytes = export_to_anki(all_vocab)
+        await interaction.followup.send(
+            f"Processed {len(all_vocab)} words from {file.filename}:",
+            file=discord.File(io.BytesIO(apkg_bytes), filename="vocab_deck.apkg")
+        )
 
-    await interaction.followup.send(
-        f"Processed {len(all_vocab)} words from {file.filename}:",
-        file=discord.File(file_bytes, filename="vocab_output.json")
-    )
+    elif export == "csv":
+        csv_bytes = export_to_csv(all_vocab)
+        await interaction.followup.send(
+            f"Processed {len(all_vocab)} words from {file.filename}:",
+            file=discord.File(io.BytesIO(csv_bytes), filename="vocab_sheet.csv")
+        )
+
+    elif export == "sheet":
+        await interaction.followup.send("Sheet export coming soon!")
+
 
 client.run(os.environ.get("DISCORD_TOKEN"))

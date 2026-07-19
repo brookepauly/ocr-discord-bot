@@ -3,6 +3,9 @@ import io
 import asyncio
 import json
 from gemini_ocr import extract_vocab
+import csv
+import genanki
+
 
 VALID_IMAGE_EXTS = {
     ".png": "image/png",
@@ -47,3 +50,19 @@ async def process_images(images, batch_size = 2):
         await asyncio.sleep(4)
 
     return all_vocab
+
+# export functions
+def export_to_csv(vocab_list):
+    """
+    vocab_list: list of dicts with keys: vocab_name, reading, meaning
+    Returns: bytes of the .csv file (ready to send as a Discord attachment)
+    """
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Word", "Reading", "Meaning"])  # header row
+ 
+    for word in vocab_list:
+        writer.writerow([word["vocab_name"], word["reading"], word["meaning"]])
+ 
+    return output.getvalue().encode("utf-8")
+
