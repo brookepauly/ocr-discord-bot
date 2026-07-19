@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from discord.ext import commands
 from discord import app_commands
 from typing import Literal
+import json
+import io
 
 load_dotenv()
 
@@ -58,8 +60,15 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
         raw_result = extract_vocab([(file.filename, image_bytes, mime_type)])
         all_vocab = json.loads(raw_result)["vocab"]
 
-    #export based on export tag (to do)
+    # Export based on export tag (to do)
+    
+    # Current lines for testing (file send)
+    vocab_json = json.dumps(all_vocab, ensure_ascii=False, indent=2)
+    file_bytes = io.BytesIO(vocab_json.encode("utf-8"))
 
-    await interaction.followup.send(f"Processed {len(all_vocab)} words from {file.filename}, exporting as {export}")
+    await interaction.followup.send(
+        f"Processed {len(all_vocab)} words from {file.filename}:",
+        file=discord.File(file_bytes, filename="vocab_output.json")
+    )
 
 client.run(os.environ.get("DISCORD_TOKEN"))
