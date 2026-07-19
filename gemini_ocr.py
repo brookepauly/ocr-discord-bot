@@ -2,6 +2,8 @@ from google import genai
 from google.genai import types
 import os
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
+
 
 load_dotenv()
 
@@ -20,8 +22,16 @@ def extract_vocab(images: list[tuple[str, bytes, str]]):
     """
     parts = [
         types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
-        for name, image_bytes, mime_type in images
+        for _, image_bytes, mime_type in images # _ = ignoring name of file
     ]
+
+    class Vocab(BaseModel):
+        vocab_name: str = Field(description="The vocab word.")
+        reading: str = Field(description="Hiragana for the vocabulary reading.")
+        meaning: str = Field(description="English translation/meaning of the vocab word")
+
+    class VocabList(BaseModel):
+        vocab: list[Vocab]
 
     response = client.models.generate_content(
         model="gemini-3.1-flash-lite",
@@ -30,10 +40,12 @@ def extract_vocab(images: list[tuple[str, bytes, str]]):
                 "You will receive multiple images of Japanese book pages. "
                 "Extract Japanese vocabulary from each page image. "
                 "For every highlighted word on each page, return: word, reading (hiragana), meaning (English). "
-                "Be very careful not to miss any highlighted words. "
-                "Output as JSON only, no other text."
-            )
+                "Be very careful to not miss any highlighted words, they're all important."
+                "Double check pages to make sure nothing is missed!"
+            ),
+            "response_mime_type": "application/json",
+            "response_schema": VocabList,
         },
-        contents=parts,
+        contents = parts,
     )
     return response.text

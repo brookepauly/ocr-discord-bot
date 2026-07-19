@@ -11,6 +11,7 @@ VALID_IMAGE_EXTS = {
     ".webp": "image/webp",
 }
 
+# potential room for errors with "ghost files"
 def extract_images_from_zip(zip_bytes: bytes):
     """
     Takes raw zip bytes, returns list of (filename, image_bytes, mime_type)
@@ -19,7 +20,7 @@ def extract_images_from_zip(zip_bytes: bytes):
     images = []
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
         for name in z.namelist():
-            if name.endswith("/") or "/__MACOSX" in name or name.startswith("."):
+            if name.endswith("/") or name.startswith("__MACOSX/"):
                 continue
 
             ext = "." + name.rsplit(".", 1)[-1].lower() if "." in name else ""
@@ -32,7 +33,7 @@ def extract_images_from_zip(zip_bytes: bytes):
     return images
 
 
-async def process_images(images, batch_size=5):
+async def process_images(images, batch_size = 2):
     """
     images: list of (filename, image_bytes, mime_type)
     Returns: all_vocab (list of extracted word dicts)
@@ -41,7 +42,7 @@ async def process_images(images, batch_size=5):
     for i in range(0, len(images), batch_size):
         chunk = images[i:i + batch_size]
         raw_result = extract_vocab(chunk)
-        vocab_list = json.loads(raw_result)
+        vocab_list = json.loads(raw_result)["vocab"]
         all_vocab.extend(vocab_list)
         await asyncio.sleep(4)
 

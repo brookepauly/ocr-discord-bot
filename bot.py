@@ -56,7 +56,7 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
         image_bytes = await file.read()
         mime_type = file.content_type or "image/jpeg"
         raw_result = extract_vocab([(file.filename, image_bytes, mime_type)])
-        all_vocab = json.loads(raw_result)
+        all_vocab = json.loads(raw_result)["vocab"]
 
     #export based on export tag (to do)
 
