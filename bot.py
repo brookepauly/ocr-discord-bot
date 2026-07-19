@@ -16,10 +16,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = Client(command_prefix= "!", intents = intents)
 
-
-@client.tree.command(name = "Export", description = "")
-
-
+GUILD = discord.Object(id = os.environ.get("GUILD_ID")
+@client.tree.command(name = "scan", description = "Scan zip file and export", guild = GUILD)
+    await interaction.response.send_message("Scan Please!")
 
 # run the bot
 client.run(os.environ.get("DISCORD_TOKEN"))
