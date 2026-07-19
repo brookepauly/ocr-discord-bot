@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from discord.ext import commands
 from discord import app_commands
 from typing import Literal
+from google import genai
+from google.genai import types
 
 load_dotenv()
 
@@ -35,6 +37,7 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
         await interaction.response.send_message("Please provide a sheet_url for sheet export.")
         return
     
+    # available image files
     valid_image_exts = (".png", ".jpg", ".jpeg", ".webp")
     
     if file.filename.lower().endswith(".zip"):
