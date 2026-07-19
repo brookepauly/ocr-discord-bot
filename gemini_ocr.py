@@ -1,7 +1,11 @@
 from google import genai
 from google.genai import types
+import os
+from dotenv import load_dotenv
 
-client = genai.Client()
+load_dotenv()
+
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 def extract_vocab(image_bytes: bytes, mime_type: str = "img/jpeg"):
     """
