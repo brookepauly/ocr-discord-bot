@@ -16,7 +16,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = Client(command_prefix= "!", intents = intents)
 
-GUILD = discord.Object(id = os.environ.get("GUILD_ID")
+GUILD = discord.Object(id = os.environ.get("GUILD_ID"))
 @client.tree.command(name = "scan", description = "Scan zip file and export", guild = GUILD)
 async def exportFile(interaction: discord.interaction):
     await interaction.response.send_message("Scan Please!")
