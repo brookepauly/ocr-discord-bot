@@ -17,8 +17,8 @@ class Client(commands.Bot):
     async def on_ready(self):
         print(f' Logged on as {self.user}!')
         try:
-            guild = discord.Object(id=int(os.environ.get("GUILD_ID")))
-            synced = await self.tree.sync(guild=guild)
+            guild = discord.Object(id = int(os.environ.get("GUILD_ID")))
+            synced = await self.tree.sync(guild = guild)
             print(f'Synced {len(synced)} commands to guild {guild.id}')
         except Exception as e:
             print(f'Error syncing commands: {e}')
@@ -26,11 +26,11 @@ class Client(commands.Bot):
 
 intents = discord.Intents.default()
 intents.message_content = True
-client = Client(command_prefix="!", intents=intents)
+client = Client(command_prefix = "!", intents = intents)
 
-GUILD = discord.Object(id=int(os.environ.get("GUILD_ID")))
+GUILD = discord.Object(id = int(os.environ.get("GUILD_ID")))
 
-@client.tree.command(name="scan", description="Scan zip file and export", guild=GUILD)
+@client.tree.command(name = "scan", description = "Scan zip file and export", guild = GUILD)
 async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "csv", "sheet"], file: discord.Attachment, sheet_url: str = None):
     if export == "sheet" and not sheet_url:
         await interaction.response.send_message("Please provide a sheet_url for sheet export.")
@@ -64,14 +64,14 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
         apkg_bytes = export_to_anki(all_vocab)
         await interaction.followup.send(
             f"Processed {len(all_vocab)} words from {file.filename}:",
-            file=discord.File(io.BytesIO(apkg_bytes), filename="vocab_deck.apkg")
+            file = discord.File(io.BytesIO(apkg_bytes), filename="vocab_deck.apkg")
         )
 
     elif export == "csv":
         csv_bytes = export_to_csv(all_vocab)
         await interaction.followup.send(
             f"Processed {len(all_vocab)} words from {file.filename}:",
-            file=discord.File(io.BytesIO(csv_bytes), filename="vocab_sheet.csv")
+            file = discord.File(io.BytesIO(csv_bytes), filename="vocab_sheet.csv")
         )
 
     elif export == "sheet":
@@ -85,5 +85,26 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
                 f"Couldn't push to that sheet — make sure you've shared it with the service account's email, "
                 f"and that the URL is correct.\nError: {e}"
             )
+
+@client.tree.command(name = "help", description = "help define commands", guild = "GUILD")
+async def help_command(interaction: discord.Interaction):
+    embed = discord.Discord (
+        title = "Bot Commands Menu",
+        description = "Here is a list of everything you can do",
+
+    )
+
+    embed.add_field(name = "Quick Translations", 
+                    value = "`/scan` - Add new automated translations into vocab deck.\n"
+                            "**Parameters:**\n"
+                            "• `export` *(Required)*: Which format/where to export the translations.\n"
+                            "• `sheet` *(Optional)*: A link to the google sheet if google sheets is chosen.", 
+                            inline = False)
+    embed.add_field(name = "Help", value = "/help", )
+
+    embed.set_footer(text="Need extra support? Contact server administrators.")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 client.run(os.environ.get("DISCORD_TOKEN"))
