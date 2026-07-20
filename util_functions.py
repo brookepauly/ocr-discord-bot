@@ -59,10 +59,10 @@ def export_to_csv(vocab_list):
     """
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Word", "Reading", "Meaning"])  # header row
+    writer.writerow(["Meaning", "Word", "Reading"])  # header row
  
     for word in vocab_list:
-        writer.writerow([word["vocab_name"], word["reading"], word["meaning"]])
+        writer.writerow([word["meaning"], word["vocab_name"], word["reading"]])
  
     return output.getvalue().encode("utf-8")
 
@@ -78,15 +78,15 @@ def export_to_anki(vocab_list):
         MODEL_ID,
         "Japanese Vocab Model",
         fields=[
+            {"name": "Meaning"},
             {"name": "Word"},
             {"name": "Reading"},
-            {"name": "Meaning"},
         ],
         templates=[
             {
                 "name": "Card 1",
-                "qfmt": "{{Word}}",
-                "afmt": '{{FrontSide}}<hr id="answer">{{Reading}}<br>{{Meaning}}',
+                "qfmt": "{{Meaning}}",  
+                "afmt": '{{FrontSide}}<hr id="answer">{{Word}}<br>{{Reading}}',
             }
         ],
     )
@@ -96,7 +96,7 @@ def export_to_anki(vocab_list):
     for word in vocab_list:
         note = genanki.Note(
             model = model,
-            fields = [word["vocab_name"], word["reading"], word["meaning"]],
+            fields = [word["meaning"], word["vocab_name"], word["reading"]],
         )
         deck.add_note(note)
     
@@ -106,5 +106,14 @@ def export_to_anki(vocab_list):
         return tmp.read()
 
     return tmp.read()
- 
+
+def export_to_sheets_direct(vocab_list, sheet_key):
+    import gspread
+
+    gc = gspread.service_account(filename = "service_account.json")
+    sh = gc.open_by_key(sheet_key)
+    ws = sh.sheet1  # always grabs first sheet (could change in future)
+
+    rows = [[word["meaning"], word["vocab_name"], word["reading"]] for word in vocab_list]
+    ws.append_rows(rows)
 
