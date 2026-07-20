@@ -11,7 +11,7 @@ import io
 load_dotenv()
 
 from gemini_ocr import extract_vocab
-from util_functions import extract_images_from_zip, process_images, export_to_csv, export_to_anki
+from util_functions import extract_images_from_zip, process_images, export_to_csv, export_to_anki, export_to_sheets
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -75,8 +75,15 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
         )
 
     elif export == "sheet":
-        
-        await interaction.followup.send("Sheet export coming soon!")
-
+        try:
+            sheet_key = sheet_url.split("/d/")[1].split("/")[0]
+            export_to_sheets(all_vocab, sheet_key)
+            await interaction.followup.send(
+                f"Processed {len(all_vocab)} words from {file.filename} and pushed them to your sheet ✅")
+        except Exception as e:
+            await interaction.followup.send(
+                f"Couldn't push to that sheet — make sure you've shared it with the service account's email, "
+                f"and that the URL is correct.\nError: {e}"
+            )
 
 client.run(os.environ.get("DISCORD_TOKEN"))

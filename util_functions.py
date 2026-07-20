@@ -115,7 +115,7 @@ def export_to_anki(vocab_list):
     print('Anki Deck Created')
     return tmp.read()
 
-def export_to_sheets_direct(vocab_list, sheet_key):
+def export_to_sheets(vocab_list, sheet_key):
     print('Exporting to Sheets...')
     import gspread
 
