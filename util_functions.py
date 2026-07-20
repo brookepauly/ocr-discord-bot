@@ -5,7 +5,7 @@ import json
 from gemini_ocr import extract_vocab
 import csv
 import genanki
-
+import tempfile
 
 VALID_IMAGE_EXTS = {
     ".png": "image/png",
@@ -65,4 +65,46 @@ def export_to_csv(vocab_list):
         writer.writerow([word["vocab_name"], word["reading"], word["meaning"]])
  
     return output.getvalue().encode("utf-8")
+
+def export_to_anki(vocab_list):
+    """
+    vocab_list: list of dicts with keys: vocab_name, reading, meaning
+    Returns: bytes of the .apkg file (ready to send as a Discord attachment)
+    """
+    MODEL_ID = 8379216775
+    DECK_ID = 5211807228
+
+    model = genanki.Model(
+        MODEL_ID,
+        "Japanese Vocab Model",
+        fields=[
+            {"name": "Word"},
+            {"name": "Reading"},
+            {"name": "Meaning"},
+        ],
+        templates=[
+            {
+                "name": "Card 1",
+                "qfmt": "{{Word}}",
+                "afmt": '{{FrontSide}}<hr id="answer">{{Reading}}<br>{{Meaning}}',
+            }
+        ],
+    )
+ 
+    deck = genanki.Deck(deck_id = DECK_ID, name = "Page_Translation") 
+ 
+    for word in vocab_list:
+        note = genanki.Note(
+            model = model,
+            fields = [word["vocab_name"], word["reading"], word["meaning"]],
+        )
+        deck.add_note(note)
+    
+    with tempfile.NamedTemporaryFile(suffix = ".apkg") as tmp:
+        genanki.Package(deck).write_to_file(tmp.name)
+        tmp.seek(0)
+        return tmp.read()
+
+    return tmp.read()
+ 
 

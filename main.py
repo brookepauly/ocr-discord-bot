@@ -11,7 +11,7 @@ import io
 load_dotenv()
 
 from gemini_ocr import extract_vocab
-from util_functions import extract_images_from_zip, process_images, export_to_csv, 
+from util_functions import extract_images_from_zip, process_images, export_to_csv, export_to_anki
 
 class Client(commands.Bot):
     async def on_ready(self):
