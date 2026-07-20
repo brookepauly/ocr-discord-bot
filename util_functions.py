@@ -17,9 +17,12 @@ VALID_IMAGE_EXTS = {
 # potential room for errors with "ghost files"
 def extract_images_from_zip(zip_bytes: bytes):
     """
-    Takes raw zip bytes, returns list of (filename, image_bytes, mime_type)
-    for every valid image inside. Skips folders/hidden files automatically.
+    Takes raw zip bytes, returns list of 
+    (filename, image_bytes, mime_type)
+    for every valid image inside. 
+    Skips folders/hidden files automatically.
     """
+    print('Unzipping Files...')
     images = []
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
         for name in z.namelist():
@@ -32,7 +35,7 @@ def extract_images_from_zip(zip_bytes: bytes):
 
             with z.open(name) as f:
                 images.append((name, f.read(), VALID_IMAGE_EXTS[ext]))
-
+    print('Files Unzipped Successfully')
     return images
 
 
@@ -41,6 +44,7 @@ async def process_images(images, batch_size = 2):
     images: list of (filename, image_bytes, mime_type)
     Returns: all_vocab (list of extracted word dicts)
     """
+    print('Processing Image Batch...')
     all_vocab = []
     for i in range(0, len(images), batch_size):
         chunk = images[i:i + batch_size]
@@ -48,11 +52,13 @@ async def process_images(images, batch_size = 2):
         vocab_list = json.loads(raw_result)["vocab"]
         all_vocab.extend(vocab_list)
         await asyncio.sleep(4)
-
+    
+    print('Images Processed')
     return all_vocab
 
 # export functions
 def export_to_csv(vocab_list):
+    print('Creating CSV File...')
     """
     vocab_list: list of dicts with keys: vocab_name, reading, meaning
     Returns: bytes of the .csv file (ready to send as a Discord attachment)
@@ -63,7 +69,7 @@ def export_to_csv(vocab_list):
  
     for word in vocab_list:
         writer.writerow([word["meaning"], word["vocab_name"], word["reading"]])
- 
+    print('CSV File Created')
     return output.getvalue().encode("utf-8")
 
 def export_to_anki(vocab_list):
@@ -74,6 +80,7 @@ def export_to_anki(vocab_list):
     MODEL_ID = 8379216775
     DECK_ID = 5211807228
 
+    print('Creating Anki Deck...')
     model = genanki.Model(
         MODEL_ID,
         "Japanese Vocab Model",
@@ -105,9 +112,11 @@ def export_to_anki(vocab_list):
         tmp.seek(0)
         return tmp.read()
 
+    print('Anki Deck Created')
     return tmp.read()
 
 def export_to_sheets_direct(vocab_list, sheet_key):
+    print('Exporting to Sheets...')
     import gspread
 
     gc = gspread.service_account(filename = "service_account.json")
@@ -116,4 +125,5 @@ def export_to_sheets_direct(vocab_list, sheet_key):
 
     rows = [[word["meaning"], word["vocab_name"], word["reading"]] for word in vocab_list]
     ws.append_rows(rows)
+    print('Sheet Appended')
 
