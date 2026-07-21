@@ -12,7 +12,7 @@ load_dotenv()
 
 from gemini_ocr import extract_vocab
 from util_functions import extract_images_from_zip, process_images, export_to_csv, export_to_anki, export_to_sheets
-from database import add_vocab_word, all_words
+from database import add_vocab_word, all_words, get_review_words
 
 class Client(commands.Bot):
     async def on_ready(self):
