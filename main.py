@@ -57,16 +57,15 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
 
     else:  # single image
         image_bytes = await file.read()
-        for word in all_vocab:
-            add_vocab_word(interaction.user.id, word["vocab_name"], word["reading"], word["meaning"])
         mime_type = file.content_type or "image/jpeg"
         raw_result = extract_vocab([(file.filename, image_bytes, mime_type)])
         all_vocab = json.loads(raw_result)["vocab"]
 
+    for word in all_vocab:
+                add_vocab_word(interaction.user.id, word["vocab_name"], word["reading"], word["meaning"])
+
     if export == "apkg":
         apkg_bytes = export_to_anki(all_vocab)
-        for word in all_vocab:
-            add_vocab_word(interaction.user.id, word["vocab_name"], word["reading"], word["meaning"])
         await interaction.followup.send(
             f"Processed {len(all_vocab)} words from {file.filename}:",
             file = discord.File(io.BytesIO(apkg_bytes), filename="vocab_deck.apkg")
@@ -74,8 +73,6 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
 
     elif export == "csv":
         csv_bytes = export_to_csv(all_vocab)
-        for word in all_vocab:
-            add_vocab_word(interaction.user.id, word["vocab_name"], word["reading"], word["meaning"])
         await interaction.followup.send(
             f"Processed {len(all_vocab)} words from {file.filename}:",
             file = discord.File(io.BytesIO(csv_bytes), filename="vocab_sheet.csv")
@@ -85,8 +82,6 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
         try:
             sheet_key = sheet_url.split("/d/")[1].split("/")[0]
             export_to_sheets(all_vocab, sheet_key)
-            for word in all_vocab:
-                add_vocab_word(interaction.user.id, word["vocab_name"], word["reading"], word["meaning"])
             await interaction.followup.send(
                 f"Processed {len(all_vocab)} words from {file.filename} and pushed them to your sheet ✅")
         except Exception as e:
