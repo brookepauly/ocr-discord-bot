@@ -6,6 +6,7 @@ from gemini_ocr import extract_vocab
 import csv
 import genanki
 import tempfile
+from database import add_vocab_word
 
 VALID_IMAGE_EXTS = {
     ".png": "image/png",
