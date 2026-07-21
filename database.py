@@ -31,6 +31,19 @@ def add_vocab_word(client_id, vocab, reading, meaning):
     conn.commit()
     conn.close()
 
+def all_words(client_id):
+    conn = sqlite3.connect('vocab.db')
+    c = conn.cursor()
+
+    c.execute(
+        "SELECT vocab, reading, meaning FROM vocab WHERE client_id = ?",
+    (client_id,)
+    )
+    
+    rows = c.fetchall()
+    conn.commit()
+    conn.close()
+
 @dataclass
 class QuizSession:
     words: list

@@ -12,7 +12,7 @@ load_dotenv()
 
 from gemini_ocr import extract_vocab
 from util_functions import extract_images_from_zip, process_images, export_to_csv, export_to_anki, export_to_sheets
-from database import add_vocab_word
+from database import add_vocab_word, all_words
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -109,6 +109,25 @@ async def help_command(interaction: discord.Interaction):
     embed.set_footer(text="Need extra support? Contact server administrators.")
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+@client.tree.command(name = "all_words", description = "Viewing All Vocab Words Uploaded", guild = GUILD)
+async def allWords(interaction: discord.Interaction):
+    rows = all_words(interaction.user.id)
+
+    if not rows:
+        await interaction.response.send_message("You haven't saved any words yet.")
+        return
+    lines = [f"{word} — {reading} — {meaning}" for word, reading, meaning in rows]
+    message = "\n".join(lines)
+
+    if len(message) < 1900: # discord length chat requirement
+        await interaction.response.send_message(f"Your saved words:\n{message}")
+    else:
+        file_bytes = io.BytesIO(message.encode("utf-8"))
+        await interaction.response.send_message(
+            "Your saved words (sent as a file, too long for a message):",
+            file=discord.File(file_bytes, filename="all_words.txt")
+        )
 
 
 client.run(os.environ.get("DISCORD_TOKEN"))

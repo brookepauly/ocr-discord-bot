@@ -42,8 +42,10 @@ def extract_images_from_zip(zip_bytes: bytes):
 
 async def process_images(images, batch_size = 2):
     """
-    images: list of (filename, image_bytes, mime_type)
-    Returns: all_vocab (list of extracted word dicts)
+    images: list of (
+    filename, image_bytes, mime_type)
+    Returns: all_vocab 
+    (list of extracted word dicts)
     """
     print('Processing Image Batch...')
     all_vocab = []
@@ -61,8 +63,10 @@ async def process_images(images, batch_size = 2):
 def export_to_csv(vocab_list):
     print('Creating CSV File...')
     """
-    vocab_list: list of dicts with keys: vocab_name, reading, meaning
-    Returns: bytes of the .csv file (ready to send as a Discord attachment)
+    vocab_list: list of dicts with keys: 
+    vocab_name, reading, meaning
+    Returns: bytes of the .csv file 
+    (ready to send as a Discord attachment)
     """
     output = io.StringIO()
     writer = csv.writer(output)
@@ -75,8 +79,10 @@ def export_to_csv(vocab_list):
 
 def export_to_anki(vocab_list):
     """
-    vocab_list: list of dicts with keys: vocab_name, reading, meaning
-    Returns: bytes of the .apkg file (ready to send as a Discord attachment)
+    vocab_list: list of dicts with keys: 
+    vocab_name, reading, meaning
+    Returns: bytes of the .apkg file 
+    (ready to send as a Discord attachment)
     """
     MODEL_ID = 8379216775
     DECK_ID = 5211807228
