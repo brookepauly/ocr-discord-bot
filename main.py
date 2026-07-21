@@ -3,7 +3,6 @@ import os
 import json
 from dotenv import load_dotenv
 from discord.ext import commands
-from discord import app_commands
 from typing import Literal
 import json
 import io
@@ -13,6 +12,7 @@ load_dotenv()
 from gemini_ocr import extract_vocab
 from util_functions import extract_images_from_zip, process_images, export_to_csv, export_to_anki, export_to_sheets
 from database import add_vocab_word, all_words, get_review_words
+from dataclasses import dataclass, field
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -24,12 +24,20 @@ class Client(commands.Bot):
         except Exception as e:
             print(f'Error syncing commands: {e}')
 
-
 intents = discord.Intents.default()
 intents.message_content = True
 client = Client(command_prefix = "!", intents = intents)
 
 GUILD = discord.Object(id = int(os.environ.get("GUILD_ID")))
+
+@dataclass
+class QuizSession:
+    words: list
+    index: int = 0
+    correct_count: int = 0
+    incorrect_count: int = 0
+
+active_quizzes: dict[int, QuizSession] = {}
 
 @client.tree.command(name = "scan", description = "Scan zip file and export", guild = GUILD)
 async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "csv", "sheet"], file: discord.Attachment, sheet_url: str = None):
@@ -129,5 +137,8 @@ async def allWords(interaction: discord.Interaction):
             file=discord.File(file_bytes, filename="all_words.txt")
         )
 
+@client.tree.command(name = "quiz", description = "Quiz To Review Words", guild = GUILD)
+async def Quiz(interaction: discord.Interaction):
+    
 
 client.run(os.environ.get("DISCORD_TOKEN"))

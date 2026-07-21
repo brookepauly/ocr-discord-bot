@@ -57,15 +57,6 @@ def all_words(client_id):
 
     return rows
 
-@dataclass
-class QuizSession:
-    words: list
-    index: int = 0
-    correct_count: int = 0
-    incorrect_count: int = 0
-
-active_quizzes: dict[int, QuizSession] = {}
-
 def log_review(client_id, word_id, correct):
     conn = sqlite3.connect('vocab.db')
     c = conn.cursor()
