@@ -1,3 +1,4 @@
 .env
 service_account.json
 .DS_Store
+vocab.db
