@@ -29,6 +29,7 @@ intents.message_content = True
 client = Client(command_prefix = "!", intents = intents)
 
 GUILD = discord.Object(id = int(os.environ.get("GUILD_ID")))
+NUM_WORDS = 15
 
 @dataclass
 class QuizSession:
@@ -139,6 +140,17 @@ async def allWords(interaction: discord.Interaction):
 
 @client.tree.command(name = "quiz", description = "Quiz To Review Words", guild = GUILD)
 async def Quiz(interaction: discord.Interaction):
+    client_id = interaction.user.id
+
+    if client_id in active_quizzes:
+        await interaction.response.send_message("You're still in a quiz, finish that one first.")
+
+    words = get_review_words(client_id, limit = NUM_WORDS)
+    if not words:
+        await interaction.response.send_message("You don't have any words saved yet (try /scan).")
+        return
+
     
+
 
 client.run(os.environ.get("DISCORD_TOKEN"))
