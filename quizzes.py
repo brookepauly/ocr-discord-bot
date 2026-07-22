@@ -11,7 +11,6 @@ from database import get_review_words, log_reviews
 class QuizSession:
     words: list
 
-
 active_quizzes: dict[int, QuizSession] = {}
 
 

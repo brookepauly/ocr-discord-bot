@@ -1,5 +1,4 @@
 import sqlite3
-from dataclasses import dataclass
 
 def init_db():
     conn = sqlite3.connect('vocab.db') # connection
@@ -11,9 +10,7 @@ def init_db():
                 word text,
                 reading text,
                 date_added TEXT DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(client_id, word),
-                correct_count integer,
-                incorrect_count integer
+                UNIQUE(client_id, reading, word)
                 )""")
 
     c.execute("""CREATE TABLE IF NOT EXISTS review_log (
@@ -30,13 +27,13 @@ def init_db():
 
 init_db()
 
-def add_vocab_word(client_id, vocab, reading, meaning):
+def add_vocab_word(client_id, word, reading, meaning):
     conn = sqlite3.connect('vocab.db')
     c = conn.cursor()
 
     c.execute(
-        "INSERT OR IGNORE INTO vocab (client_id, vocab, reading, meaning) VALUES (?, ?, ?, ?)",
-        (client_id, vocab, reading, meaning)
+        "INSERT OR IGNORE INTO vocab (client_id, word, reading, meaning) VALUES (?, ?, ?, ?)",
+        (client_id, word, reading, meaning)
     )
 
     conn.commit()
@@ -47,7 +44,7 @@ def all_words(client_id):
     c = conn.cursor()
 
     c.execute(
-        "SELECT vocab, reading, meaning FROM vocab WHERE client_id = ?",
+        "SELECT word, reading, meaning FROM vocab WHERE client_id = ?",
     (client_id,)
     )
 
@@ -57,7 +54,7 @@ def all_words(client_id):
 
     return rows
 
-def log_reviews_batch(client_id, results):
+def log_reviews(client_id, results):
     """
     results: list of (word_id, correct) tuples
     Inserts all review outcomes in a single connection/transaction.
@@ -76,7 +73,7 @@ def get_review_words(client_id, limit):
     c = conn.cursor()
 
     c.execute("""
-        SELECT v.id, v.vocab, v.reading, v.meaning
+        SELECT v.id, v.word, v.reading, v.meaning
         FROM vocab v
         LEFT JOIN review_log r ON v.id = r.word_id AND r.client_id = v.client_id
         WHERE v.client_id = ?

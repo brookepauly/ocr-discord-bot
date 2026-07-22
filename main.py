@@ -89,7 +89,7 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
                 f"and that the URL is correct.\nError: {e}"
             )
 
-@client.tree.command(name = "help", description = "help define commands", guild = "GUILD")
+@client.tree.command(name = "help", description = "help define commands", guild = GUILD)
 async def help_command(interaction: discord.Interaction):
     embed = discord.Discord (
         title = "Bot Commands Menu",
@@ -129,6 +129,5 @@ async def allWords(interaction: discord.Interaction):
         )
 
 setup_quiz(client, GUILD)
-setup_daily_quiz(client, channel_id = int(os.environ.get("QUIZ_CHANNEL_ID")), target_user_id=int(os.environ.get("YOUR_USER_ID")))
 
 client.run(os.environ.get("DISCORD_TOKEN"))
