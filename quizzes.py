@@ -107,7 +107,8 @@ def setup_quiz(client, GUILD):
         await interaction.response.send_message(embed=embed, view=view)
         view.message = await interaction.original_response()
 
-def setup_daily_quiz(client, channel_id, target_user_id, hour=2, minute=48):
+# quizzes.py
+def setup_daily_quiz(client, channel_id, target_user_id, hour=9, minute=0):
     @tasks.loop(time=datetime.time(hour=hour, minute=minute, tzinfo=ZoneInfo("America/New_York")))
     async def daily_quiz_post():
         print(f"[{datetime.datetime.now()}] Daily quiz task fired")
@@ -118,7 +119,7 @@ def setup_daily_quiz(client, channel_id, target_user_id, hour=2, minute=48):
 
         words = get_review_words(target_user_id, limit=5)
         if not words:
-            return  # nothing due, stay quiet
+            return
 
         session_data = QuizSession(words=words)
         active_quizzes[target_user_id] = session_data
@@ -132,4 +133,4 @@ def setup_daily_quiz(client, channel_id, target_user_id, hour=2, minute=48):
     async def before_daily_quiz():
         await client.wait_until_ready()
 
-    daily_quiz_post.start()
+    return daily_quiz_post 

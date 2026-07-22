@@ -23,6 +23,9 @@ class Client(commands.Bot):
             print(f'Synced {len(synced)} commands to guild {guild.id}')
         except Exception as e:
             print(f'Error syncing commands: {e}')
+            
+        if not daily_quiz_task.is_running():
+            daily_quiz_task.start()
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -133,7 +136,8 @@ async def allWords(interaction: discord.Interaction):
         )
 
 setup_quiz(client, GUILD)
-setup_daily_quiz(
+
+daily_quiz_task = setup_daily_quiz(
     client,
     channel_id=int(os.environ.get("QUIZ_CHANNEL_ID")),
     target_user_id=int(os.environ.get("YOUR_USER_ID"))
