@@ -57,15 +57,17 @@ def all_words(client_id):
 
     return rows
 
-def log_review(client_id, word_id, correct):
+def log_reviews_batch(client_id, results):
+    """
+    results: list of (word_id, correct) tuples
+    Inserts all review outcomes in a single connection/transaction.
+    """
     conn = sqlite3.connect('vocab.db')
     c = conn.cursor()
-
-    c.execute(
+    c.executemany(
         "INSERT INTO review_log (client_id, word_id, correct) VALUES (?, ?, ?)",
-        (client_id, word_id, int(correct))
+        [(client_id, word_id, int(correct)) for word_id, correct in results]
     )
-
     conn.commit()
     conn.close()
 

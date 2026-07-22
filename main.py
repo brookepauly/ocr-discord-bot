@@ -11,8 +11,8 @@ load_dotenv()
 
 from gemini_ocr import extract_vocab
 from util_functions import extract_images_from_zip, process_images, export_to_csv, export_to_anki, export_to_sheets
-from database import add_vocab_word, all_words, get_review_words
-from dataclasses import dataclass, field
+from database import add_vocab_word, all_words
+from quizzes import setup_quiz, setup_daily_quiz
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -29,16 +29,6 @@ intents.message_content = True
 client = Client(command_prefix = "!", intents = intents)
 
 GUILD = discord.Object(id = int(os.environ.get("GUILD_ID")))
-NUM_WORDS = 15
-
-@dataclass
-class QuizSession:
-    words: list
-    index: int = 0
-    correct_count: int = 0
-    incorrect_count: int = 0
-
-active_quizzes: dict[int, QuizSession] = {}
 
 @client.tree.command(name = "scan", description = "Scan zip file and export", guild = GUILD)
 async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "csv", "sheet"], file: discord.Attachment, sheet_url: str = None):
@@ -135,22 +125,10 @@ async def allWords(interaction: discord.Interaction):
         file_bytes = io.BytesIO(message.encode("utf-8"))
         await interaction.response.send_message(
             "Your saved words (sent as a file, too long for a message):",
-            file=discord.File(file_bytes, filename="all_words.txt")
+            file = discord.File(file_bytes, filename = "all_words.txt")
         )
 
-@client.tree.command(name = "quiz", description = "Quiz To Review Words", guild = GUILD)
-async def Quiz(interaction: discord.Interaction):
-    client_id = interaction.user.id
-
-    if client_id in active_quizzes:
-        await interaction.response.send_message("You're still in a quiz, finish that one first.")
-
-    words = get_review_words(client_id, limit = NUM_WORDS)
-    if not words:
-        await interaction.response.send_message("You don't have any words saved yet (try /scan).")
-        return
-
-    
-
+setup_quiz(client, GUILD)
+setup_daily_quiz(client, channel_id = int(os.environ.get("QUIZ_CHANNEL_ID")), target_user_id=int(os.environ.get("YOUR_USER_ID")))
 
 client.run(os.environ.get("DISCORD_TOKEN"))
