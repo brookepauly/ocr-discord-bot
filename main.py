@@ -104,6 +104,10 @@ async def help_command(interaction: discord.Interaction):
                             "• `sheet` *(Optional)*: A link to the google sheet if google sheets is chosen.", 
                             inline = False)
     embed.add_field(name = "Help", value = "/help", )
+    embed.add_field(name = "all_words", value = "'/all_words' - Displays all words that you have scanned.")
+    embed.add_field(name = "quiz", value = "'/quiz' - Quiz on vocab you've scanned. \n"
+                                            "**Parameters**\n"
+                                            "• 'num_words' - *(Required)*: Number of words you'd like to be quizzed on")
 
     embed.set_footer(text="Need extra support? Contact server administrators.")
 
