@@ -133,8 +133,10 @@ async def allWords(interaction: discord.Interaction):
         )
 
 setup_quiz(client, GUILD)
-setup_daily_quiz(client,
+setup_daily_quiz(
+    client,
     channel_id=int(os.environ.get("QUIZ_CHANNEL_ID")),
-    target_user_id=int(os.environ.get("YOUR_USER_ID")))
+    target_user_id=int(os.environ.get("YOUR_USER_ID"))
+)
 
 client.run(os.environ.get("DISCORD_TOKEN"))
