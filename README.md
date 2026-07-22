@@ -9,6 +9,8 @@ Built as a personal tool for my own Japanese reading practice, and as a project
 demonstrating an end-to-end applied AI pipeline: ingestion → extraction → persistence
 → evaluation → modeling.
 
+<img width="400" height="269" alt="Screen Recording 2026-07-22 at 12 13 25 AM" src="https://github.com/user-attachments/assets/269debbd-c198-4ee2-b420-7e3c87c6cfee" />
+
 ---
 
 ## What it does
