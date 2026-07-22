@@ -5,6 +5,8 @@ import datetime
 from discord import ui
 from dataclasses import dataclass
 from database import get_review_words, log_reviews
+from zoneinfo import ZoneInfo
+import datetime
 
 
 @dataclass
@@ -105,9 +107,10 @@ def setup_quiz(client, GUILD):
         await interaction.response.send_message(embed=embed, view=view)
         view.message = await interaction.original_response()
 
-def setup_daily_quiz(client, channel_id, target_user_id, hour=9, minute=0):
+def setup_daily_quiz(client, channel_id, target_user_id, hour=9, minute=0, tzinfo=ZoneInfo("America/New_York")):
     @tasks.loop(time=datetime.time(hour=hour, minute=minute))
     async def daily_quiz_post():
+        print(f"[{datetime.datetime.now()}] Daily quiz task fired")
         channel = client.get_channel(channel_id)
         if channel is None:
             print("Couldn't find channel for daily quiz")
