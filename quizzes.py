@@ -107,8 +107,8 @@ def setup_quiz(client, GUILD):
         await interaction.response.send_message(embed=embed, view=view)
         view.message = await interaction.original_response()
 
-def setup_daily_quiz(client, channel_id, target_user_id, hour=2, minute=35, tzinfo=ZoneInfo("America/New_York")):
-    @tasks.loop(time=datetime.time(hour=hour, minute=minute))
+def setup_daily_quiz(client, channel_id, target_user_id, hour=2, minute=38):
+    @tasks.loop(time=datetime.time(hour=hour, minute=minute, tzinfo=ZoneInfo("America/New_York")))
     async def daily_quiz_post():
         print(f"[{datetime.datetime.now()}] Daily quiz task fired")
         channel = client.get_channel(channel_id)
