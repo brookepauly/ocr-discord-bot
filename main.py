@@ -91,7 +91,7 @@ async def exportFile(interaction: discord.Interaction, export: Literal["apkg", "
 
 @client.tree.command(name = "help", description = "help define commands", guild = GUILD)
 async def help_command(interaction: discord.Interaction):
-    embed = discord.Discord (
+    embed = discord.Embed (
         title = "Bot Commands Menu",
         description = "Here is a list of everything you can do",
 
