@@ -12,77 +12,96 @@ import datetime
 @dataclass
 class QuizSession:
     words: list
+    index: int = 0
+    revealed: bool = False
+    results: list = None
+
+    def __post_init__(self):
+        if self.results is None:
+            self.results = []
+
 
 active_quizzes: dict[int, QuizSession] = {}
 
 
-def build_quiz_embed(session: QuizSession):
-    lines = [f"{i+1}. **{w['vocab_name']}**" for i, w in enumerate(session.words)]
+def build_card_embed(session: QuizSession):
+    word = session.words[session.index]
     embed = discord.Embed(
-        title="Vocab Quiz",
-        description="\n".join(lines) + "\n\nClick **Answer** and type your answers, one per line, in order."
+        title=f"Card {session.index + 1}/{len(session.words)}",
+        description=f"# {word['vocab_name']}"
     )
+    if session.revealed:
+        embed.add_field(name="Reading", value=word["reading"], inline=True)
+        embed.add_field(name="Meaning", value=word["meaning"], inline=True)
     return embed
 
 
-class AnswerModal(ui.Modal, title="Your Answers"):
-    answers = ui.TextInput(
-        label = "One answer per line, in order",
-        style=  discord.TextStyle.paragraph,
-        placeholder="ほん - book\nよむ - to read\n..."
-    )
-
+class FlashcardView(ui.View):
     def __init__(self, client_id, message):
-        super().__init__()
+        super().__init__(timeout=1800)  # 30 min, generous since it's self-paced
         self.client_id = client_id
         self.message = message
+        self.update_buttons()
 
-    async def on_submit(self, interaction: discord.Interaction):
+    def update_buttons(self):
+        self.clear_items()
         session = active_quizzes[self.client_id]
-        user_lines = self.answers.value.strip().split("\n")
 
-        results = []
-        review_batch = []
-        correct_count = 0
+        if not session.revealed:
+            self.add_item(self.RevealButton())
+        else:
+            self.add_item(self.CorrectButton())
+            self.add_item(self.IncorrectButton())
 
-        for i, word in enumerate(session.words):
-            user_answer = user_lines[i].lower() if i < len(user_lines) else ""
-            is_correct = (
-                word["reading"].lower() in user_answer
-                or word["meaning"].lower() in user_answer
+    class RevealButton(ui.Button):
+        def __init__(self):
+            super().__init__(label="Show Answer", style = discord.ButtonStyle.primary)
+
+        async def callback(self, interaction: discord.Interaction):
+            view: FlashcardView = self.view
+            session = active_quizzes[view.client_id]
+            session.revealed = True
+            view.update_buttons()
+            await interaction.response.edit_message(embed = build_card_embed(session), view = view)
+
+    class CorrectButton(ui.Button):
+        def __init__(self):
+            super().__init__(label = "✅ Got it right", style=discord.ButtonStyle.success)
+
+        async def callback(self, interaction: discord.Interaction):
+            await self.view.advance(interaction, correct = True)
+
+    class IncorrectButton(ui.Button):
+        def __init__(self):
+            super().__init__(label = "❌ Missed it", style = discord.ButtonStyle.danger)
+
+        async def callback(self, interaction: discord.Interaction):
+            await self.view.advance(interaction, correct = False)
+
+    async def advance(self, interaction: discord.Interaction, correct: bool):
+        session = active_quizzes[self.client_id]
+        word = session.words[session.index]
+        session.results.append((word["word_id"], correct))
+
+        session.index += 1
+        session.revealed = False
+
+        if session.index >= len(session.words):
+            log_reviews(self.client_id, session.results)
+            correct_count = sum(1 for _, c in session.results if c)
+
+            final_embed = discord.Embed(
+                title=f"Quiz Complete! {correct_count}/{len(session.words)} correct"
             )
-            review_batch.append((word["word_id"], is_correct))
-
-            if is_correct:
-                correct_count += 1
-            mark = "✅" if is_correct else "❌"
-            results.append(f"{mark} {word['vocab_name']} — {word['reading']} ({word['meaning']})")
-
-        log_reviews(self.client_id, review_batch)
-
-        final_embed = discord.Embed(
-            title=f"Quiz Complete! {correct_count}/{len(session.words)} correct",
-            description="\n".join(results)
-        )
-
-        await self.message.edit(embed=final_embed, view=None)
-        del active_quizzes[self.client_id]
-        await interaction.response.defer()
-
-
-class QuizView(ui.View):
-    def __init__(self, client_id, message):
-        super().__init__(timeout=300)
-        self.client_id = client_id
-        self.message = message
-
-    @ui.button(label="Answer", style=discord.ButtonStyle.primary)
-    async def answer_button(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_modal(AnswerModal(self.client_id, self.message))
+            await interaction.response.edit_message(embed=final_embed, view=None)
+            del active_quizzes[self.client_id]
+        else:
+            self.update_buttons()
+            await interaction.response.edit_message(embed=build_card_embed(session), view=self)
 
 
 def setup_quiz(client, GUILD):
-    @client.tree.command(name="quiz", description = "Quiz yourself on saved vocab", guild=GUILD)
+    @client.tree.command(name="quiz", description="Quiz yourself on saved vocab", guild=GUILD)
     async def quiz(interaction: discord.Interaction, num_words: int = 5):
         client_id = interaction.user.id
 
@@ -91,23 +110,17 @@ def setup_quiz(client, GUILD):
             return
 
         words = get_review_words(client_id, limit=num_words)
-
         if not words:
             await interaction.response.send_message("You don't have any saved words yet — try `/scan` first.")
             return
 
-        print('Creating Quiz Session...')
         active_quizzes[client_id] = QuizSession(words=words)
-        print('Quiz Session Created')
-        print('Embedding quiz...')
-        embed = build_quiz_embed(active_quizzes[client_id])
-        print('Quiz embedded')
-        view = QuizView(client_id, None)
+        view = FlashcardView(client_id, None)
+        embed = build_card_embed(active_quizzes[client_id])
 
         await interaction.response.send_message(embed=embed, view=view)
         view.message = await interaction.original_response()
 
-# quizzes.py
 def setup_daily_quiz(client, channel_id, target_user_id, hour=9, minute=0):
     @tasks.loop(time=datetime.time(hour=hour, minute=minute, tzinfo=ZoneInfo("America/New_York")))
     async def daily_quiz_post():
@@ -121,10 +134,9 @@ def setup_daily_quiz(client, channel_id, target_user_id, hour=9, minute=0):
         if not words:
             return
 
-        session_data = QuizSession(words=words)
-        active_quizzes[target_user_id] = session_data
-        embed = build_quiz_embed(session_data)
-        view = QuizView(target_user_id, None)
+        active_quizzes[target_user_id] = QuizSession(words=words)
+        view = FlashcardView(target_user_id, None)
+        embed = build_card_embed(active_quizzes[target_user_id])
 
         message = await channel.send(embed=embed, view=view)
         view.message = message
@@ -133,4 +145,4 @@ def setup_daily_quiz(client, channel_id, target_user_id, hour=9, minute=0):
     async def before_daily_quiz():
         await client.wait_until_ready()
 
-    return daily_quiz_post 
+    return daily_quiz_post
