@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 import datetime
 
-from database import get_review_words, log_reviews_batch
+from database import get_review_words, log_reviews
 
 # graded, on demand quiz
 @dataclass
@@ -86,7 +86,7 @@ class FlashcardView(ui.View):
         session.revealed = False
 
         if session.index >= len(session.words):
-            log_reviews_batch(self.client_id, session.results)
+            log_reviews(self.client_id, session.results)
             correct_count = sum(1 for _, c in session.results if c)
 
             final_embed = discord.Embed(
