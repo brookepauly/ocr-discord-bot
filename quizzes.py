@@ -4,14 +4,13 @@ from discord.ext import tasks
 from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 import datetime
-from database import get_words_due_for_review
+from database import get_review_words
 
 @dataclass
 class RecapSession:
     words: list
     index: int = 0
     revealed: bool = False
-
 
 active_recaps: dict[int, RecapSession] = {}
 
@@ -84,7 +83,7 @@ def setup_daily_quiz(client, channel_id, target_user_id, hour=9, minute=0):
             print("Couldn't find channel for daily recap")
             return
 
-        words = get_words_due_for_review(target_user_id, limit=10)
+        words = get_review_words(target_user_id, limit=10)
         if not words:
             return
 
