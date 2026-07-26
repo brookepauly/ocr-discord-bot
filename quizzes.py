@@ -1,33 +1,25 @@
 import discord
-from dataclasses import dataclass
-from discord.ext import tasks
-import datetime
 from discord import ui
-from dataclasses import dataclass
-from database import get_review_words, log_reviews
+from discord.ext import tasks
+from dataclasses import dataclass, field
 from zoneinfo import ZoneInfo
 import datetime
-
+from database import get_words_due_for_review
 
 @dataclass
-class QuizSession:
+class RecapSession:
     words: list
     index: int = 0
     revealed: bool = False
-    results: list = None
-
-    def __post_init__(self):
-        if self.results is None:
-            self.results = []
 
 
-active_quizzes: dict[int, QuizSession] = {}
+active_recaps: dict[int, RecapSession] = {}
 
 
-def build_card_embed(session: QuizSession):
+def build_recap_embed(session: RecapSession):
     word = session.words[session.index]
     embed = discord.Embed(
-        title=f"Card {session.index + 1}/{len(session.words)}",
+        title=f"Word {session.index + 1}/{len(session.words)}",
         description=f"# {word['vocab_name']}"
     )
     if session.revealed:
@@ -36,107 +28,69 @@ def build_card_embed(session: QuizSession):
     return embed
 
 
-class FlashcardView(ui.View):
+class RecapView(ui.View):
     def __init__(self, client_id, message):
-        super().__init__(timeout=1800)  # 30 min, generous since it's self-paced
+        super().__init__(timeout=1800)
         self.client_id = client_id
         self.message = message
         self.update_buttons()
 
     def update_buttons(self):
         self.clear_items()
-        session = active_quizzes[self.client_id]
+        session = active_recaps[self.client_id]
 
         if not session.revealed:
             self.add_item(self.RevealButton())
         else:
-            self.add_item(self.CorrectButton())
-            self.add_item(self.IncorrectButton())
+            self.add_item(self.NextButton())
 
     class RevealButton(ui.Button):
         def __init__(self):
-            super().__init__(label="Show Answer", style = discord.ButtonStyle.primary)
+            super().__init__(label="Show Answer", style=discord.ButtonStyle.primary)
 
         async def callback(self, interaction: discord.Interaction):
-            view: FlashcardView = self.view
-            session = active_quizzes[view.client_id]
+            view: RecapView = self.view
+            session = active_recaps[view.client_id]
             session.revealed = True
             view.update_buttons()
-            await interaction.response.edit_message(embed = build_card_embed(session), view = view)
+            await interaction.response.edit_message(embed=build_recap_embed(session), view=view)
 
-    class CorrectButton(ui.Button):
+    class NextButton(ui.Button):
         def __init__(self):
-            super().__init__(label = "✅ Got it right", style=discord.ButtonStyle.success)
+            super().__init__(label="Next ➡️", style=discord.ButtonStyle.secondary)
 
         async def callback(self, interaction: discord.Interaction):
-            await self.view.advance(interaction, correct = True)
+            view: RecapView = self.view
+            session = active_recaps[view.client_id]
 
-    class IncorrectButton(ui.Button):
-        def __init__(self):
-            super().__init__(label = "❌ Missed it", style = discord.ButtonStyle.danger)
+            session.index += 1
+            session.revealed = False
 
-        async def callback(self, interaction: discord.Interaction):
-            await self.view.advance(interaction, correct = False)
+            if session.index >= len(session.words):
+                final_embed = discord.Embed(title="Recap complete ✅")
+                await interaction.response.edit_message(embed=final_embed, view=None)
+                del active_recaps[view.client_id]
+            else:
+                view.update_buttons()
+                await interaction.response.edit_message(embed=build_recap_embed(session), view=view)
 
-    async def advance(self, interaction: discord.Interaction, correct: bool):
-        session = active_quizzes[self.client_id]
-        word = session.words[session.index]
-        session.results.append((word["word_id"], correct))
-
-        session.index += 1
-        session.revealed = False
-
-        if session.index >= len(session.words):
-            log_reviews(self.client_id, session.results)
-            correct_count = sum(1 for _, c in session.results if c)
-
-            final_embed = discord.Embed(
-                title=f"Quiz Complete! {correct_count}/{len(session.words)} correct"
-            )
-            await interaction.response.edit_message(embed=final_embed, view=None)
-            del active_quizzes[self.client_id]
-        else:
-            self.update_buttons()
-            await interaction.response.edit_message(embed=build_card_embed(session), view=self)
-
-
-def setup_quiz(client, GUILD):
-    @client.tree.command(name="quiz", description="Quiz yourself on saved vocab", guild=GUILD)
-    async def quiz(interaction: discord.Interaction, num_words: int = 5):
-        client_id = interaction.user.id
-
-        if client_id in active_quizzes:
-            await interaction.response.send_message("You're already in a quiz! Finish that one first.")
-            return
-
-        words = get_review_words(client_id, limit=num_words)
-        if not words:
-            await interaction.response.send_message("You don't have any saved words yet — try `/scan` first.")
-            return
-
-        active_quizzes[client_id] = QuizSession(words=words)
-        view = FlashcardView(client_id, None)
-        embed = build_card_embed(active_quizzes[client_id])
-
-        await interaction.response.send_message(embed=embed, view=view)
-        view.message = await interaction.original_response()
 
 def setup_daily_quiz(client, channel_id, target_user_id, hour=9, minute=0):
     @tasks.loop(time=datetime.time(hour=hour, minute=minute, tzinfo=ZoneInfo("America/New_York")))
     async def daily_quiz_post():
-        print(f"[{datetime.datetime.now()}] Daily quiz task fired")
+        print(f"[{datetime.datetime.now()}] Daily recap task fired")
         channel = client.get_channel(channel_id)
         if channel is None:
-            print("Couldn't find channel for daily quiz")
+            print("Couldn't find channel for daily recap")
             return
 
-        words = get_review_words(target_user_id, limit=5)
+        words = get_words_due_for_review(target_user_id, limit=10)
         if not words:
             return
 
-        active_quizzes[target_user_id] = QuizSession(words=words)
-        view = FlashcardView(target_user_id, None)
-        embed = build_card_embed(active_quizzes[target_user_id])
+        active_recaps[target_user_id] = RecapSession(words=words)
+        view = RecapView(target_user_id, None)
+        embed = build_recap_embed(active_recaps[target_user_id])
 
         message = await channel.send(embed=embed, view=view)
         view.message = message
