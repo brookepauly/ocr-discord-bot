@@ -1,7 +1,7 @@
 import discord
 from discord import ui
 from discord.ext import tasks
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 import datetime
 from database import get_words_due_for_review
