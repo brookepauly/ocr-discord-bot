@@ -4,7 +4,124 @@ from discord.ext import tasks
 from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 import datetime
-from database import get_review_words
+
+from database import get_review_words, log_reviews_batch
+
+# graded, on demand quiz
+@dataclass
+class QuizSession:
+    words: list
+    index: int = 0
+    revealed: bool = False
+    results: list = None
+
+    def __post_init__(self):
+        if self.results is None:
+            self.results = []
+
+
+active_quizzes: dict[int, QuizSession] = {}
+
+
+def build_quiz_embed(session: QuizSession):
+    word = session.words[session.index]
+    embed = discord.Embed(
+        title=f"Card {session.index + 1}/{len(session.words)}",
+        description=f"# {word['vocab_name']}"
+    )
+    if session.revealed:
+        embed.add_field(name="Reading", value=word["reading"], inline=True)
+        embed.add_field(name="Meaning", value=word["meaning"], inline=True)
+    return embed
+
+
+class FlashcardView(ui.View):
+    def __init__(self, client_id, message):
+        super().__init__(timeout=1800)
+        self.client_id = client_id
+        self.message = message
+        self.update_buttons()
+
+    def update_buttons(self):
+        self.clear_items()
+        session = active_quizzes[self.client_id]
+
+        if not session.revealed:
+            self.add_item(self.RevealButton())
+        else:
+            self.add_item(self.CorrectButton())
+            self.add_item(self.IncorrectButton())
+
+    class RevealButton(ui.Button):
+        def __init__(self):
+            super().__init__(label="Show Answer", style=discord.ButtonStyle.primary)
+
+        async def callback(self, interaction: discord.Interaction):
+            view: FlashcardView = self.view
+            session = active_quizzes[view.client_id]
+            session.revealed = True
+            view.update_buttons()
+            await interaction.response.edit_message(embed=build_quiz_embed(session), view=view)
+
+    class CorrectButton(ui.Button):
+        def __init__(self):
+            super().__init__(label="✅ Got it right", style=discord.ButtonStyle.success)
+
+        async def callback(self, interaction: discord.Interaction):
+            await self.view.advance(interaction, correct=True)
+
+    class IncorrectButton(ui.Button):
+        def __init__(self):
+            super().__init__(label="❌ Missed it", style=discord.ButtonStyle.danger)
+
+        async def callback(self, interaction: discord.Interaction):
+            await self.view.advance(interaction, correct=False)
+
+    async def advance(self, interaction: discord.Interaction, correct: bool):
+        session = active_quizzes[self.client_id]
+        word = session.words[session.index]
+        session.results.append((word["word_id"], correct))
+
+        session.index += 1
+        session.revealed = False
+
+        if session.index >= len(session.words):
+            log_reviews_batch(self.client_id, session.results)
+            correct_count = sum(1 for _, c in session.results if c)
+
+            final_embed = discord.Embed(
+                title=f"Quiz Complete! {correct_count}/{len(session.words)} correct"
+            )
+            await interaction.response.edit_message(embed=final_embed, view=None)
+            del active_quizzes[self.client_id]
+        else:
+            self.update_buttons()
+            await interaction.response.edit_message(embed=build_quiz_embed(session), view=self)
+
+
+def setup_quiz(client, GUILD):
+    @client.tree.command(name="quiz", description="Quiz yourself on saved vocab", guild=GUILD)
+    async def quiz(interaction: discord.Interaction, num_words: int = 5):
+        client_id = interaction.user.id
+
+        if client_id in active_quizzes:
+            await interaction.response.send_message("You're already in a quiz! Finish that one first.")
+            return
+
+        words = get_review_words(client_id, limit=num_words)
+        if not words:
+            await interaction.response.send_message("You don't have any saved words yet — try `/scan` first.")
+            return
+
+        active_quizzes[client_id] = QuizSession(words=words)
+        view = FlashcardView(client_id, None)
+        embed = build_quiz_embed(active_quizzes[client_id])
+
+        await interaction.response.send_message(embed=embed, view=view)
+        view.message = await interaction.original_response()
+
+
+# daily recap
 
 @dataclass
 class RecapSession:
@@ -13,7 +130,6 @@ class RecapSession:
     revealed: bool = False
 
 active_recaps: dict[int, RecapSession] = {}
-
 
 def build_recap_embed(session: RecapSession):
     word = session.words[session.index]
@@ -25,7 +141,6 @@ def build_recap_embed(session: RecapSession):
         embed.add_field(name="Reading", value=word["reading"], inline=True)
         embed.add_field(name="Meaning", value=word["meaning"], inline=True)
     return embed
-
 
 class RecapView(ui.View):
     def __init__(self, client_id, message):
@@ -72,7 +187,6 @@ class RecapView(ui.View):
             else:
                 view.update_buttons()
                 await interaction.response.edit_message(embed=build_recap_embed(session), view=view)
-
 
 def setup_daily_quiz(client, channel_id, target_user_id, hour=9, minute=0):
     @tasks.loop(time=datetime.time(hour=hour, minute=minute, tzinfo=ZoneInfo("America/New_York")))
