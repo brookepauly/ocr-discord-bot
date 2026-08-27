@@ -40,7 +40,8 @@ def extract_vocab(images: list[tuple[str, bytes, str]]):
                 "You will receive multiple images of Japanese book pages. "
                 "Extract Japanese vocabulary from each page image. "
                 "For every highlighted word on each page, return: word, reading (hiragana), meaning (English). "
-                "Double check pages to make sure nothing is missed."
+                "Be very careful to not miss any highlighted words, they're all important."
+                "Double check pages to make sure nothing is missed!"
             ),
             "response_mime_type": "application/json",
             "response_schema": VocabList,
