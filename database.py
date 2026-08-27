@@ -35,9 +35,21 @@ def add_vocab_word(client_id, word, reading, meaning):
         "INSERT OR IGNORE INTO vocab (client_id, word, reading, meaning) VALUES (?, ?, ?, ?)",
         (client_id, word, reading, meaning)
     )
-
     conn.commit()
+
+    # NEW: figure out the word's id whether it was just inserted or already existed
+    if c.rowcount:
+        word_id = c.lastrowid
+    else:
+        c.execute(
+            "SELECT id FROM vocab WHERE client_id = ? AND reading = ? AND word = ?",
+            (client_id, reading, word)
+        )
+        row = c.fetchone()
+        word_id = row[0] if row else None
+
     conn.close()
+    return word_id  # NEW: this was missing entirely before
 
 def all_words(client_id):
     conn = sqlite3.connect('vocab.db')

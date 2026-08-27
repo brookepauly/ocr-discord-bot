@@ -52,6 +52,16 @@ class FlashcardView(ui.View):
             self.add_item(self.CorrectButton())
             self.add_item(self.IncorrectButton())
 
+    async def on_timeout(self):
+        active_quizzes.pop(self.client_id, None)
+        for item in self.children:
+            item.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except discord.NotFound:
+                pass
+
     class RevealButton(ui.Button):
         def __init__(self):
             super().__init__(label="Show Answer", style=discord.ButtonStyle.primary)
