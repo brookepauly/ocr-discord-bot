@@ -148,16 +148,8 @@ def setup_daily_quiz(client, channel_id, target_user_id, hour=9, minute=0):
         if not words:
             return
 
-        active_quizzes[target_user_id] = QuizSession(words=words)
-        
-        # Add timeout daily
-        view = FlashcardView(target_user_id, None, timeout=82800.0)
-        
-        # Build and send the embed
-        embed = build_daily_recap_embed(active_quizzes[target_user_id])
-        msg = await channel.send(embed=embed, view=view)
-        view.message = msg
-
+        embed = build_daily_recap_embed(words)
+        await channel.send(embed=embed)  # no view, no buttons, no timeout at all
 
     @daily_quiz_post.before_loop
     async def before_daily_quiz():
